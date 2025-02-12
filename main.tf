@@ -24,7 +24,7 @@ provider "aws" {
 }
 
 resource "aws_s3_bucket" "my_bucket" {
-  bucket = "cloudchallenge-i515d"
+  bucket = var.website_s3
   tags = {
     Name        = "CRC"
     Environment = "Production"
@@ -42,22 +42,23 @@ resource "aws_s3_bucket_public_access_block" "my_bucket" {
 # Makes S3 bucket read only for the public
 resource "aws_s3_bucket_policy" "my_bucket" {
   bucket     = aws_s3_bucket.my_bucket.id
-  policy     = <<POLICY
-{
-  
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "PublicReadGetObject",
-            "Effect": "Allow",
-            "Principal": "*",
-            "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::cloudchallenge-i515d/*"
-        }
-    ]
-}
-POLICY
+  policy     = data.aws_iam_policy_document.bucketpolicy.json
+
   depends_on = [aws_s3_bucket_public_access_block.my_bucket]
+}
+
+data "aws_iam_policy_document" "bucketpolicy" {
+  statement {
+    sid       = "PublicReadGetObject"
+    effect    = "Allow"
+    resources = ["arn:aws:s3:::${var.website_s3}/*"]
+    actions   = ["s3:GetObject"]
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+  }
 }
 
 resource "aws_s3_object" "upload_index" {
