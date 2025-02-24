@@ -5,12 +5,15 @@ terraform {
       version = "~> 4.16"
     }
   }
+ 
   required_version = ">= 1.2.0"
 }
 
+
+
 provider "vault" {
   address = "http://localhost:8200"
-  token   = "hvs.NUthzDQLwpk5gvijRHkA5Ya2"
+  token   = "root"
 }
 
 data "vault_generic_secret" "aws_credentials" {
@@ -65,10 +68,10 @@ resource "aws_s3_object" "upload_index" {
   bucket = aws_s3_bucket.my_bucket.id
   key    = "/index.html"
   content_type    = "text/html"
-  source = "${path.module}/website/index.html"
-  etag   = filemd5("${path.module}/website/index.html")
+  source = "${path.module}/website/react-template/out/index.html"
+  etag   = filemd5("${path.module}/website/react-template/out/index.html")
 }
-
+/*
 resource "aws_s3_object" "upload_error" {
   bucket = aws_s3_bucket.my_bucket.id
   key    = "/error.html"
@@ -82,6 +85,15 @@ resource "aws_s3_object" "upload_javascript" {
   key    = "/javascript_getapi.js"
   content      = local.rendered_script
   content_type = "application/javascript"
+} */
+
+// Upload multiple files to S3 Bucket
+resource "aws_s3_bucket_object" "provision_source_files" {
+    bucket  = aws_s3_bucket.my_bucket.id
+    for_each = fileset("website/react-template/out", "**/*.*")
+
+    key    = each.value
+    source = "website/react-template/out/${each.value}"
 }
 
 resource "aws_s3_bucket_website_configuration" "website-config" {
