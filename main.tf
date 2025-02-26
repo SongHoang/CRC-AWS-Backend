@@ -5,11 +5,9 @@ terraform {
       version = "~> 4.16"
     }
   }
- 
+
   required_version = ">= 1.2.0"
 }
-
-
 
 provider "vault" {
   address = "http://localhost:8200"
@@ -23,7 +21,7 @@ data "vault_generic_secret" "aws_credentials" {
 provider "aws" {
   access_key = data.vault_generic_secret.aws_credentials.data["aws_access_key_id"]
   secret_key = data.vault_generic_secret.aws_credentials.data["aws_secret_access_key"]
-  region     = "us-east-2"
+  region     = var.aws_region
 }
 
 resource "aws_s3_bucket" "my_bucket" {
@@ -44,8 +42,8 @@ resource "aws_s3_bucket_public_access_block" "my_bucket" {
 
 # Makes S3 bucket read only for the public
 resource "aws_s3_bucket_policy" "my_bucket" {
-  bucket     = aws_s3_bucket.my_bucket.id
-  policy     = data.aws_iam_policy_document.bucketpolicy.json
+  bucket = aws_s3_bucket.my_bucket.id
+  policy = data.aws_iam_policy_document.bucketpolicy.json
 
   depends_on = [aws_s3_bucket_public_access_block.my_bucket]
 }
@@ -63,15 +61,17 @@ data "aws_iam_policy_document" "bucketpolicy" {
     }
   }
 }
+// All this below needed anymore since the frontend CI/CD updates these files
 
-resource "aws_s3_object" "upload_index" {
-  bucket = aws_s3_bucket.my_bucket.id
-  key    = "/index.html"
-  content_type    = "text/html"
-  source = "${path.module}/website/react-template/out/index.html"
-  etag   = filemd5("${path.module}/website/react-template/out/index.html")
-}
+# resource "aws_s3_object" "upload_index" {
+#   bucket = aws_s3_bucket.my_bucket.id
+#   key    = "/index.html"
+#   content_type    = "text/html"
+#   source = "${path.module}/website/react-template/out/index.html"
+#   etag   = filemd5("${path.module}/website/react-template/out/index.html")
+# }
 /*
+
 resource "aws_s3_object" "upload_error" {
   bucket = aws_s3_bucket.my_bucket.id
   key    = "/error.html"
@@ -88,13 +88,15 @@ resource "aws_s3_object" "upload_javascript" {
 } */
 
 // Upload multiple files to S3 Bucket
-resource "aws_s3_bucket_object" "provision_source_files" {
-    bucket  = aws_s3_bucket.my_bucket.id
-    for_each = fileset("website/react-template/out", "**/*.*")
 
-    key    = each.value
-    source = "website/react-template/out/${each.value}"
-}
+// Not needed anymore since the frontend CI/CD updates these files
+# resource "aws_s3_bucket_object" "provision_source_files" {
+#     bucket  = aws_s3_bucket.my_bucket.id
+#     for_each = fileset("website/react-template/out", "**/*.*")
+#     key    = each.value
+#     source = "website/react-template/out/${each.value}"
+# }
+
 
 resource "aws_s3_bucket_website_configuration" "website-config" {
   bucket = aws_s3_bucket.my_bucket.id
